@@ -1,7 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy Node.js app to Azure Web App - webapp-dev-uks-01
+name: Terraform + Node.js Deploy to Azure Web App
 
 on:
   push:
@@ -23,23 +20,25 @@ jobs:
         with:
           terraform_version: 1.5.0
 
-      - name: Login to Azure
+      - name: Login to Azure (SP)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        
+
   build:
     runs-on: ubuntu-latest
+    needs: terraform
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -65,8 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
       - name: Download artifact from build job
@@ -74,18 +72,17 @@ jobs:
         with:
           name: node-app
       
-      - name: Login to Azure
+      - name: Login to Azure (SP)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0D1474FDBECC4FBC82A841C283A3A7D7 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_DA802DC6FA9E4BCD8AFC6925F9F45434 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_28FD5C9E27774CF49AA49456E02C0E91 }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'webapp-dev-uks-01'
           slot-name: 'Production'
           package: .
-          
